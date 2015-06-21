@@ -25,27 +25,46 @@ mt <- mt %>%
           )
 
 # Change the am column (transmission type) to textual form
-mt <- mutate(mt, am = ifelse(mt$am == 0, 'automatic', mt$am))
-mt <- mutate(mt, am = ifelse(mt$am == 1, 'manual', mt$am))
-mt <- mutate(mt, am = as.factor(mt$am))
+mt$transmission <- NA
+mt <- mutate(mt, transmission = ifelse(mt$am == 0, 'automatic', mt$transmission))
+mt <- mutate(mt, transmission = ifelse(mt$am == 1, 'manual', mt$transmission))
+mt <- mutate(mt, transmission = as.factor(mt$transmission))
 
 # Pairs plots to see correllations between all the variables
 plot1 <- ggpairs(data = mt,
-        colour = "am")
+        colour = "transmission")
 
 # Boxplot of transmission type versus mpg
-plot2 <- ggplot(data = mt, aes(x = am, y = mpg, fill = am )) +
-    geom_boxplot()
-    scale_fill_manual(name = 'Transmission',
-                      values = c('pink', 'green'),
-                      breaks = c(0,1),
-                      labels = c('Automatic','Manual'))
-
-mtSummary <- mt %>%
-            group_by(am)%>%
+plot2 <- ggplot(data = mt, aes(x = transmission, y = mpg, fill = transmission)) +
+    geom_boxplot() +
+    labs(title = 'Miles per Gallon with Automatic or Manual Transmission')
+  
+# Summarise main statistics on mpg against am
+transmissionSummary <- mt %>%
+            group_by(transmission)%>%
             summarise(count = n(),
-                      meanMpg = mean(mpg),
+                      meanMpg = round(mean(mpg), 1),
                       medianMpg = median(mpg),
-                      sdMpg = sd(mpg)
+                      sdMpg = round(sd(mpg), 1)
                       )
 
+# Regression analysis with linear model
+
+## Drop the textual transmission variable and use factor am instead
+mt2 <- select(mt, -(transmission))
+mt2 <- mutate(mt2, am = as.factor(mt2$am))
+
+initialModel <- lm(mpg ~ ., data = mt2)
+summary(initialModel)
+
+bestModel <- step(initialModel, direction = 'both')
+summary(bestModel)
+
+amModel <- lm(mpg ~ am, data = mt2)
+summary(amModel)
+
+## anova
+anova(amModel, bestModel)
+
+## t-test
+t.test(mpg ~ am, data = mt2)
