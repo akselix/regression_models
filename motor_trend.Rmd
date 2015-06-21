@@ -1,0 +1,19 @@
+---
+title: "Miles per Gallon Between Automatic and Manual Transmission"
+author: "akselix"
+date: "21 Jun 2015"
+output: pdf_document
+---
+
+## Overview of the Assignment
+You work for Motor Trend, a magazine about the automobile industry. Looking at a data set of a collection of cars, they are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
+
+“Is an automatic or manual transmission better for MPG”
+"Quantify the MPG difference between automatic and manual transmissions"
+
+## Executive Summary
+
+After the analysis it is clear that manual transmission is better for milage per gallon. In a linear model with only transmission type as a factor against milage, a Multiple R-squared value of about 0.36 was obtained. This means that 36% of the increase in miles per gallon is explained by the transmission type.
+
+Best model obtained (starting  with all the other variables against miles per gallon and using R's step function to remove unnecessary variables to find the best fit), could explain about 87% of increase in miles per gallon is explained by the transmission type.
+
