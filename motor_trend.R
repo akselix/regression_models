@@ -7,6 +7,7 @@ library(knitr)
 library(dplyr)
 library(ggplot2)
 library(GGally)
+library(gridExtra)
 
 # Load and transform data
 mt <- tbl_df(mtcars)
@@ -68,3 +69,35 @@ anova(amModel, bestModel)
 
 ## t-test
 t.test(mpg ~ am, data = mt2)
+
+## Residual analysis
+bestRes <- resid(bestModel)
+bestFit <- bestModel$fitted.values
+
+amRes <- resid(amModel)
+amFit <- amModel$fitted.values
+
+mtRes <- data.frame(mt$mpg, bestFit,bestRes, amFit, amRes)
+
+# Plot actual mpg against residuals from both models
+plot3 <- ggplot(data = mtRes, aes(x = mt.mpg, y = bestRes)) +
+    geom_point() +
+    stat_smooth() +
+    labs(title = 'Actual MPG and Best Model`s Residuals', x = 'Actual MPG', y = 'Residuals')
+
+plot4 <- ggplot(data = mtRes, aes(x = mt.mpg, y = amRes)) +
+    geom_point() +
+    stat_smooth() +
+    labs(title = 'Actual MPG and Transmission Type Model`s Residuals', x = 'Actual MPG', y = 'Residuals')
+
+plot5 <- ggplot(data = mtRes, aes(x = mt.mpg, y = bestFit)) +
+    geom_point() +
+    stat_smooth() +
+    labs(title = 'Actual MPG and Best Model`s Fitted Values', x = 'Actual MPG', y = 'Fitted Values')
+
+plot6 <- ggplot(data = mtRes, aes(x = mt.mpg, y = amFit)) +
+    geom_point() +
+    stat_smooth() +
+    labs(title = 'Actual MPG and Transmission Type Model`s Fitted Values', x = 'Actual MPG', y = 'Fitted Values')
+
+plots3to6 <- grid.arrange(plot3, plot4, plot5, plot6, ncol = 2)
