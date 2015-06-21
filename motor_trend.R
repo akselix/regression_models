@@ -31,16 +31,20 @@ mt <- mutate(mt, transmission = ifelse(mt$am == 0, 'automatic', mt$transmission)
 mt <- mutate(mt, transmission = ifelse(mt$am == 1, 'manual', mt$transmission))
 mt <- mutate(mt, transmission = as.factor(mt$transmission))
 
+## Drop the textual transmission variable and use factor am instead
+mt2 <- select(mt, -(transmission))
+mt2 <- mutate(mt2, am = as.factor(mt2$am))
+
 # Pairs plots to see correllations between all the variables
-plot1 <- ggpairs(data = mt,
-        colour = "transmission")
+plot1 <- ggpairs(data = mt2,
+        colour = 'am')
 
 # Boxplot of transmission type versus mpg
 plot2 <- ggplot(data = mt, aes(x = transmission, y = mpg, fill = transmission)) +
     geom_boxplot() +
     labs(title = 'Miles per Gallon with Automatic or Manual Transmission')
   
-# Summarise main statistics on mpg against am
+## Summarise main statistics on mpg against am
 transmissionSummary <- mt %>%
             group_by(transmission)%>%
             summarise(count = n(),
@@ -51,24 +55,26 @@ transmissionSummary <- mt %>%
 
 # Regression analysis with linear model
 
-## Drop the textual transmission variable and use factor am instead
-mt2 <- select(mt, -(transmission))
-mt2 <- mutate(mt2, am = as.factor(mt2$am))
+## t-test
+t.test(mpg ~ am, data = mt2)
 
+## Model building
 initialModel <- lm(mpg ~ ., data = mt2)
 summary(initialModel)
+confint(bestModel, level = 0.95)
 
 bestModel <- step(initialModel, direction = 'both')
 summary(bestModel)
 
 amModel <- lm(mpg ~ am, data = mt2)
 summary(amModel)
+confint(amModel, level = 0.95)
+
+
 
 ## anova
 anova(amModel, bestModel)
 
-## t-test
-t.test(mpg ~ am, data = mt2)
 
 ## Residual analysis
 bestRes <- resid(bestModel)
@@ -79,7 +85,7 @@ amFit <- amModel$fitted.values
 
 mtRes <- data.frame(mt$mpg, bestFit,bestRes, amFit, amRes)
 
-# Plot actual mpg against residuals from both models
+### Plot actual mpg against residuals from both models
 plot3 <- ggplot(data = mtRes, aes(x = mt.mpg, y = bestRes)) +
     geom_point() +
     stat_smooth() +

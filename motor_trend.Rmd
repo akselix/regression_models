@@ -1,5 +1,5 @@
 ---
-title: "Miles per Gallon Between Automatic and Manual Transmission"
+title: "Miles per Gallon in the mtcars Dataset"
 author: "akselix"
 date: "21 Jun 2015"
 output: pdf_document
@@ -8,12 +8,156 @@ output: pdf_document
 ## Overview of the Assignment
 You work for Motor Trend, a magazine about the automobile industry. Looking at a data set of a collection of cars, they are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
 
-“Is an automatic or manual transmission better for MPG”
-"Quantify the MPG difference between automatic and manual transmissions"
+- Is an automatic or manual transmission better for MPG
+- Quantify the MPG difference between automatic and manual transmissions
+
+None of the code is shown here per instructions and space conciderations of the assignment. Supporting figures can be found from the Appendix.
 
 ## Executive Summary
 
-After the analysis it is clear that manual transmission is better for milage per gallon. In a linear model with only transmission type as a factor against milage, a Multiple R-squared value of about 0.36 was obtained. This means that 36% of the increase in miles per gallon is explained by the transmission type.
+After the analysis it is clear that manual transmission is better for milage per gallon. In a linear model with only transmission type as a factor against milage, a Multiple R-squared value of 0.36 was obtained. This means that 36% of the increase in miles per gallon is explained by the transmission type based on this data.
 
-Best model obtained (starting  with all the other variables against miles per gallon and using R's step function to remove unnecessary variables to find the best fit), could explain about 87% of increase in miles per gallon is explained by the transmission type.
+Best model obtained could explain 87% of increase in miles per gallon. Variables in the model were: amount of cyliders, horsepower, weight and type of transmission. In this model, the estimate is that manual transmission is more fuel efficient by 1.8 MPG with a standard error of 1.4.
 
+
+```{r, echo=F, warning=F, results=F, message= F}
+# Libraries and options
+library(knitr)
+library(dplyr)
+library(ggplot2)
+library(GGally)
+library(gridExtra)
+
+# Load and transform data
+mt <- tbl_df(mtcars)
+
+## Take a looka at the variables
+#str(mt)
+
+## Change some variables to factor for easier plotting
+mt <- mt %>%
+    mutate(cyl = as.factor(mt$cyl),
+           vs = as.factor(mt$vs),
+           gear = as.factor(mt$gear),
+           carb = as.factor(mt$carb)
+          )
+
+# Change the am column (transmission type) to textual form
+mt$transmission <- NA
+mt <- mutate(mt, transmission = ifelse(mt$am == 0, 'automatic', mt$transmission))
+mt <- mutate(mt, transmission = ifelse(mt$am == 1, 'manual', mt$transmission))
+mt <- mutate(mt, transmission = as.factor(mt$transmission))
+
+## Drop the textual transmission variable and use factor am instead
+mt2 <- select(mt, -(transmission))
+mt2 <- mutate(mt2, am = as.factor(mt2$am))
+```
+
+## Exploratory Analysis
+
+To get an overview of the correllations, a pairs plot is created that clearly shows important correlations with many of the other variables and MPG. Then we check the difference between MPG by transmission type via boxplot and summary table.
+```{r, echo=F, warning=F, results=F, message= F}
+# Pairs plots to see correllations between all the variables
+plot1 <- ggpairs(data = mt2,
+                 title = 'Pairplot of mtcars Variables',
+                 axisLabels = "none",
+                 upper = list(continuous = 'cor', combo = 'dot', params = c(size = 2)),
+                 lower = list(continuous = "cor", params = c(size = 2))
+                )
+
+# Boxplot of transmission type versus MPG
+plot2 <- ggplot(data = mt, aes(x = transmission, y = mpg, fill = transmission)) +
+    geom_boxplot() +
+    labs(title = 'Miles per Gallon with Automatic or Manual Transmission') +
+    theme(plot.title = element_text(size = 10))
+  
+## Summarise main statistics on MPG against am
+transmissionSummary <- mt %>%
+            group_by(transmission)%>%
+            summarise(count = n(),
+                      meanMpg = round(mean(mpg), 1),
+                      medianMpg = median(mpg),
+                      sdMpg = round(sd(mpg), 1)
+                      )
+
+```
+
+### Summary of MPG Difference by Transmission Type
+```{r, echo=F, warning=F, results=F, message= F}
+print(transmissionSummary)
+```
+
+## Regression with Linear Models
+
+We start with all the other variables against miles per gallon and using R's step function, we can remove unnecessary variables to find the best fit. After that a model with just transmission type is created. Then we check if the best model is significantly better than the transmission type model. It is so with F-value of 1.688e-08 which is significant at the 0.999 level. Even though some of the variance can be explained by transmission type, there are other important variables to take into account.
+
+```{r, echo= F, warning= F, results= F, message= F}
+## Model building
+initialModel <- lm(mpg ~ ., data = mt2)
+bestModel <- step(initialModel, direction = 'both', trace = F)
+
+amModel <- lm(mpg ~ am, data = mt2)
+
+## Anova
+mtAnova <- anova(amModel, bestModel)
+```
+
+```{r, echo=F, warning=F, results=F, message= F}
+summary(bestModel)
+print(mtAnova)
+```
+
+## Residual Analysis
+
+Looking at the residuals, it is clear that best model performs rather consistently with the predicted values. At the highest milages the estimates are not as good as the others, but since the amount of observations is small, those could be thought of as outliers. With the transmission type model, there seems to be some systematic variance. So we can conclude that we should use the model with more variables than just transmission type.
+
+```{r, echo=F, warning=F, results=F, message= F}
+bestRes <- resid(bestModel)
+bestFit <- bestModel$fitted.values
+
+amRes <- resid(amModel)
+amFit <- amModel$fitted.values
+
+mtRes <- data.frame(mt$mpg, bestFit,bestRes, amFit, amRes)
+
+### Plot actual mpg against residuals from both models
+plot3 <- ggplot(data = mtRes, aes(x = mt.mpg, y = bestRes)) +
+    geom_point() +
+    stat_smooth() +
+    labs(title = 'Actual MPG and Best Model`s Residuals', x = 'Actual MPG', y = 'Residuals') +
+    theme(plot.title = element_text(size = 6))
+
+plot4 <- ggplot(data = mtRes, aes(x = mt.mpg, y = amRes)) +
+    geom_point() +
+    stat_smooth() +
+    labs(title = 'Actual MPG and Transmission Type Model`s Residuals', x = 'Actual MPG', y = 'Residuals') +
+    theme(plot.title = element_text(size = 6))
+
+plot5 <- ggplot(data = mtRes, aes(x = mt.mpg, y = bestFit)) +
+    geom_point() +
+    stat_smooth() +
+    labs(title = 'Actual MPG and Best Model`s Fitted Values', x = 'Actual MPG', y = 'Fitted Values') +
+    theme(plot.title = element_text(size = 6))
+
+plot6 <- ggplot(data = mtRes, aes(x = mt.mpg, y = amFit)) +
+    geom_point() +
+    stat_smooth() +
+    labs(title = 'Actual MPG and Transmission Type Model`s Fitted Values', x = 'Actual MPG', y = 'Fitted Values') +
+    theme(plot.title = element_text(size = 6))
+```
+
+## Appendix
+
+### Exploratory Analysis
+
+```{r, echo=F, warning=F, results=F, message= F}
+print(plot1)  
+  
+print(plot2)
+```
+
+
+### Residual Analysis
+
+```{r, echo=F, warning=F, results=F, message= F}
+plots3to6 <- grid.arrange(plot3, plot4, plot5, plot6, ncol = 2)
