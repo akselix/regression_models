@@ -2,7 +2,7 @@
 title: "Miles per Gallon in the mtcars Dataset"
 author: "akselix"
 date: "21 Jun 2015"
-output: pdf_document
+output: html_document
 ---
 
 ## Overview of the Assignment
@@ -61,8 +61,8 @@ To get an overview of the correllations, a pairs plot is created that clearly sh
 plot1 <- ggpairs(data = mt2,
                  title = 'Pairplot of mtcars Variables',
                  axisLabels = "none",
-                 upper = list(continuous = 'cor', combo = 'dot', params = c(size = 2)),
-                 lower = list(continuous = "cor", params = c(size = 2))
+                 upper = list(continuous = wrap('cor', size = 2), combo = 'dot'),
+                 lower = list(continuous = wrap("cor", size = 2))
                 )
 
 # Boxplot of transmission type versus MPG
